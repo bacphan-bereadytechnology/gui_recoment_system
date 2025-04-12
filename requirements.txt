@@ -1,0 +1,7 @@
+streamlit
+pandas
+pickle
+surprise
+re
+pyvi
+gensim
