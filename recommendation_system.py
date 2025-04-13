@@ -25,19 +25,19 @@ if sidebar_choice != st.session_state.page:
     st.session_state.page = sidebar_choice
     st.rerun()
 
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🛠️ **Thực hiện bởi:**")
+st.sidebar.markdown("- Phan Ngọc Phương Bắc\n- Nguyễn Tuấn Anh")
+st.sidebar.markdown("### 👩‍🏫 **Giảng viên:**\n Cô Khuất Thùy Phương")
 st.sidebar.markdown(
     """
     <hr>
-    <div style='text-align: center; font-size: 12px; color: gray;'>
-        Made with ❤️ by<br>
-        Phan Ngọc Phương Bắc<br>
-        Nguyễn Tuấn Anh<br>
-        <a href="https://github.com/bacphan-bereadytechnology/gui_recoment_system" target="_blank">GitHub</a>
+    <div style='font-size: 12px; color: gray;'>
+        Source Code: <a href="https://github.com/bacphan-bereadytechnology/gui_recoment_system" target="_blank">GitHub</a>
     </div>
     """,
     unsafe_allow_html=True
 )
-
 
 if st.session_state.page == "Home":
 
