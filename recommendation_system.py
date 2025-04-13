@@ -96,25 +96,31 @@ elif st.session_state.page == "About Project":
 
 elif st.session_state.page == "Collaborative Filtering":
 
-    def recommend_products(
-        rating_df, products_df, model, userId, user_rating=3, estimateScore=3, num_recommendations=10
+    def recommend_products_by_subcategory(
+        rating_df,
+        products_df,
+        model,
+        userId,
+        selected_sub_category,
+        user_rating=3,
+        estimateScore=3,
+        num_recommendations=10
     ):
-        # Lọc ra các sản phẩm user đã đánh giá
+        # Lọc sản phẩm theo sub_category đã chọn
+        filtered_products = products_df[products_df["sub_category"] == selected_sub_category]
+        available_product_ids = set(filtered_products["product_id"].unique())
+
+        # Lọc sản phẩm đã đánh giá
         rated_product_ids = rating_df[
             (rating_df["user_id"] == userId) & (rating_df["rating"] >= user_rating)
         ]["product_id"].unique()
 
-        # Lấy tất cả sản phẩm còn tồn tại trong products_df
-        available_product_ids = set(products_df["product_id"].unique())
-
-        # Danh sách sản phẩm chưa đánh giá và còn tồn tại
-        all_product_ids = rating_df["product_id"].unique()
+        # Danh sách sản phẩm chưa đánh giá và thuộc sub_category đã chọn
         unrated_product_ids = [
-            pid for pid in all_product_ids
-            if pid not in rated_product_ids and pid in available_product_ids
+            pid for pid in available_product_ids if pid not in rated_product_ids
         ]
 
-        # Dự đoán điểm cho các sản phẩm chưa đánh giá
+        # Dự đoán điểm
         predictions = []
         for pid in unrated_product_ids:
             try:
@@ -122,12 +128,16 @@ elif st.session_state.page == "Collaborative Filtering":
                 if est >= estimateScore:
                     predictions.append((pid, est))
             except Exception:
-                continue  # bỏ qua lỗi nếu có
+                continue
 
+        # Kết quả dự đoán
         df_score = pd.DataFrame(predictions, columns=["product_id", "EstimateScore"])
         df_score = df_score.sort_values(by="EstimateScore", ascending=False).head(num_recommendations)
 
-        return df_score
+        # Gộp thêm thông tin sản phẩm
+        result_df = df_score.merge(products_df, on="product_id", how="left")
+
+        return result_df
 
     @st.cache_data
     def load_ratings():
@@ -136,6 +146,10 @@ elif st.session_state.page == "Collaborative Filtering":
     @st.cache_data
     def load_products():
         return pd.read_csv("product_clean.csv")
+    
+    @st.cache_data
+    def load_subcategory():
+        return pd.read_csv("sub_category_list.csv")
 
     @st.cache_resource
     def load_model():
@@ -148,6 +162,7 @@ elif st.session_state.page == "Collaborative Filtering":
     # Load dữ liệu
     ratings_df = load_ratings()
     products_df = load_products()
+    subcategory_df = load_subcategory()
 
     # Load model
     model = load_model()
@@ -171,49 +186,67 @@ elif st.session_state.page == "Collaborative Filtering":
     if st.button("🔁 Random danh sách khách hàng khác"):
         st.session_state.refresh_users = True
         st.rerun()
+    st.markdown("-"*20)
+    col1, col2 = st.columns(2)
 
-    # Selectbox với danh sách đã lưu
-    selected_user = st.selectbox(
-        "Chọn khách hàng:",
-        options=list(user_display.keys()),
-        format_func=lambda x: user_display[x]
-    )
+    with col1:
+        # Selectbox với danh sách đã lưu
+        selected_user = st.selectbox(
+            "Chọn khách hàng:",
+            options=list(user_display.keys()),
+            format_func=lambda x: user_display[x]
+        )
 
-    st.write("🧑 Khách hàng đã chọn:", user_display[selected_user])
-    st.write("🔑 Mã user_id:", selected_user)
+        st.write("🧑 Khách hàng đã chọn:", user_display[selected_user])
+        st.write("🔑 Mã user_id:", selected_user)
+    with col2:
+        selected_category = st.selectbox(
+            "Chọn danh mục sản phẩm:",
+            options= subcategory_df["sub_category"].dropna().unique().tolist()
+        )
+        st.write("📁 Danh mục đã chọn:", selected_category)
+
+    st.markdown("-"*20)
 
     # Gợi ý sản phẩm
-    recommended_df = recommend_products(
+    recommended_df = recommend_products_by_subcategory(
         rating_df=ratings_df,
         products_df=products_df,
         model=model,
         userId=selected_user,
+        selected_sub_category=selected_category,
         user_rating=min_rating,
         estimateScore=min_estimate,
         num_recommendations=top_n,
     )
 
     # Gộp với dữ liệu sản phẩm
-    result_df = recommended_df.merge(products_df, on="product_id", how="left")
+    # result_df = recommended_df.merge(products_df, on="product_id", how="left")
 
     st.subheader("🔮 Sản phẩm được đề xuất:")
     # Nếu không có sản phẩm được đề xuất
-    if result_df.empty:
+    if recommended_df.empty:
         st.info("Không có sản phẩm nào phù hợp với điều kiện lọc.")
     else:
         # Chia layout theo hàng ngang (3 cột mỗi hàng)
         cols = st.columns(3)
 
-        for idx, row in result_df.iterrows():
+        for idx, row in recommended_df.iterrows():
             col = cols[idx % 3]  # Chia đều vào 3 cột
 
             with col:
-                st.image(row["image"], use_container_width=True)
+                img_url = row.get("image", "")
+                if isinstance(img_url, str) and img_url.startswith("http"):
+                    st.image(img_url, use_container_width=True)
+                else:
+                    st.image(DEFAULT_IMAGE_URL, use_container_width=True)
+                    
                 st.markdown(f"**{row['product_name']}**")
                 st.markdown(f"💰 **Giá:** {row['price']:,} đ")
                 st.markdown(f"⭐ **Dự đoán:** {row['EstimateScore']:.2f}")
                 st.markdown(f"📄 *{row['description'][:100]}...*")
                 st.markdown("---")
+
 elif st.session_state.page == "Content Based Filtering":
 
     @st.cache_resource
