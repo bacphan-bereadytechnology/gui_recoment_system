@@ -1,6 +1,5 @@
 streamlit
 pandas
-surprise
-re
+scikit-surprise
 pyvi
 gensim
