@@ -342,7 +342,28 @@ elif st.session_state.page == "Content Based Filtering":
             st.warning("Vui lòng nhập từ khóa.")
         else:
             result = text_to_similar_products(input_text, top_n=top_n)
-            st.subheader("📌 Kết quả:")
-            st.markdown("-"*20)
-            st.dataframe(result[["product_id", "product_name", "price"]])
+            
+        st.subheader("📌 Kết quả:")
+        st.markdown("-"*20)
+        if result.empty:
+            st.info("Không có sản phẩm nào phù hợp với điều kiện lọc.")
+        else:
+            for i in range(0, len(result), 3):  # Duyệt từng nhóm 3 sản phẩm
+                cols = st.columns(3)
+                for j in range(3):
+                    if i + j < len(result):
+                        row = result.iloc[i + j]
+                        col = cols[j]
+
+                        with col:
+                            img_url = row.get("image", "")
+                            if isinstance(img_url, str) and img_url.startswith("http"):
+                                st.image(img_url, use_container_width=True)
+                            else:
+                                st.image(DEFAULT_IMAGE_URL, use_container_width=True)
+
+                            st.markdown(f"**{row['product_name']}**")
+                            st.markdown(f"💰 **Giá:** {row['price']:,} đ")
+                            st.markdown(f"📄 *{row['description'][:100]}...*")
+                            st.markdown("---")
             
