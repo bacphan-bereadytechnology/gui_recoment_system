@@ -32,7 +32,7 @@ st.sidebar.markdown(
         Made with ❤️ by<br>
         Phan Ngọc Phương Bắc<br>
         Nguyễn Tuấn Anh<br>
-        <a href="https://github.com/yourusername" target="_blank">GitHub</a>
+        <a href="https://github.com/bacphan-bereadytechnology/gui_recoment_system" target="_blank">GitHub</a>
     </div>
     """,
     unsafe_allow_html=True
